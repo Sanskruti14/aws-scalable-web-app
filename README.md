@@ -1,4 +1,4 @@
-# Scalable Web App (AWS ALB + Auto Scaling) 🍔🚀
+# Scalable Web App (AWS ALB + Auto Scaling) 
 
 Welcome to my AWS mini-project! This project demonstrates how to build a highly available and scalable web architecture using Amazon Web Services. 
 
