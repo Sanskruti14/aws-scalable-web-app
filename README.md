@@ -1,46 +1,19 @@
-# Scalable Web App (AWS ALB + Auto Scaling) 
+# AWS Auto-Scaling Web App
 
-Welcome to my AWS mini-project! This project demonstrates how to build a highly available and scalable web architecture using Amazon Web Services. 
+Hi! I built this mini-project to get some hands-on experience with AWS infrastructure. I wanted to learn how to handle traffic spikes without servers crashing, and how to automatically save money when traffic is low. 
 
-## How It Works (The Fast-Food Analogy)
-To make this easy to understand, imagine this architecture as a super-popular fast-food restaurant:
+### How I built the architecture
+To make sense of the different AWS services, I like to think of this setup like a busy restaurant:
 
-* **The Cashiers (EC2 Instances):** These are the actual servers running the website. 
-* **The Greeter (Application Load Balancer):** Stands at the front door and directs customer traffic to the shortest line so no single cashier gets overwhelmed.
-* **The Store Manager (Auto Scaling Group):** Watches how busy the cashiers are. If a sudden rush of customers arrives (high CPU usage), the manager instantly creates new cashiers. When the rush is over, the manager sends the extra cashiers home to save money.
-* **The Bouncers (Security Groups):** Keeps the servers safe. The Front Door Bouncer allows public internet traffic to the Greeter, but the Kitchen Bouncer ensures nobody can talk to the Cashiers directly unless they go through the Greeter first!
+* **EC2 Instances (The Cashiers):** These are the actual Linux servers running my Nginx web page.
+* **Application Load Balancer (The Greeter):** This sits at the front door. Instead of letting one server get overwhelmed, the ALB routes incoming traffic to whichever server has the least load.
+* **Auto Scaling Group (The Manager):** I set this up to watch the CPU usage. If CPU hits 50% (like a sudden dinner rush), the ASG automatically spins up new servers. When traffic drops, it terminates the extra servers so I'm not paying for unused compute power.
+* **Security Groups (The Bouncers):** I configured two security groups. The ALB accepts public internet traffic, but the EC2 instances are completely locked down—they only accept traffic directly from the ALB.
 
-## Architecture Components
-* **Compute:** Amazon EC2 (Amazon Linux 2023, t2.micro)
-* **Traffic Distribution:** Application Load Balancer (ALB)
-* **Automation:** Auto Scaling Group (Min: 1, Max: 4, Target CPU: 50%)
-* **Security:** AWS Security Groups
-* **Web Server:** Nginx (Automated via bash User Data script)
+### What's inside this repo?
+* **`user-data.sh`:** This is the bash script I attached to my EC2 Launch Template. Whenever the Auto Scaling Group creates a new server, this script automatically runs on boot to update the system, install Nginx, and create a custom webpage showing that specific server's Instance ID. 
 
-## Step-by-Step Build Instructions
-
-If you want to build this yourself in the AWS Console, follow these steps in order!
-
-### Step 1: Hire the Bouncers (Security Groups)
-1. Go to **EC2 > Security Groups** and create `alb-sg` (The Front Door Bouncer). Add an Inbound Rule for HTTP (Port 80) from `0.0.0.0/0` (Anywhere).
-2. Create a second security group called `ec2-private-sg` (The Kitchen Bouncer). Add an Inbound Rule for HTTP (Port 80), but set the source to your `alb-sg`. This ensures the servers only talk to the load balancer!
-
-### Step 2: Set up the Greeter (Target Group & ALB)
-1. Go to **Target Groups** and create a group named `web-app-tg`. Choose "Instances" as the target type, but do not register any instances yet.
-2. Go to **Load Balancers** and create an **Application Load Balancer** named `web-app-alb`. Set it to Internet-facing, select at least two Availability Zones, and assign it the `alb-sg` security group. Set the listener action to forward traffic to `web-app-tg`.
-
-### Step 3: Create the Cashier Blueprint (Launch Template)
-1. Go to **Launch Templates** and create `web-app-template`.
-2. Choose **Amazon Linux 2023** (Free Tier eligible) and a **t2.micro** instance type.
-3. For network settings, attach the `ec2-private-sg` security group.
-4. Scroll down to **Advanced Details** and paste the `user-data.sh` script (found in this repository) into the User Data box. This automatically installs Nginx and creates a custom webpage when the server boots!
-
-### Step 4: Hire the Manager (Auto Scaling Group)
-1. Go to **Auto Scaling Groups** and create `web-app-asg`.
-2. Attach your `web-app-template`.
-3. Attach it to your existing load balancer and target group (`web-app-tg`).
-4. Set the capacities: Desired: 2, Minimum: 1, Maximum: 4.
-5. Set up a Target Tracking Scaling Policy based on Average CPU Utilization, with a target value of 50%.
-
-## How to Test
-If you deploy this architecture, copy the ALB's DNS name into your web browser. Refresh the page a few times, and you will see the `Host ID` change on the screen. This proves the load balancer is successfully bouncing your connection between different servers in the background!
+### How to test it
+1. Deploy the infrastructure in the AWS Console.
+2. Grab the DNS link provided by the Application Load Balancer.
+3. Paste it into a browser and hit refresh a few times. You will see the Instance ID change on the screen, proving that the load balancer is actively routing your connection between the different servers running in the background.
